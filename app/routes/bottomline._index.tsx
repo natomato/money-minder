@@ -89,8 +89,19 @@ function Timeline({ label, position, xAxisBegin: first, xAxisEnd: last, total, c
     .map((timeline, index) => addLabel(timeline, index, String(position + 1)))
 
   return (
+    <div className="grid" style={columns} onClick={() => console.log(`clicked ${label}`)}>
+      {timelineProps.map((props, index) => <TimeLineCell {...props} key={`${label}-${index}`} />)}
+    </div>
+  )
+}
+
+function XAxis({ units }) {
+  const columns = { gridTemplateColumns: `repeat(${units.length}, minmax(0, 1fr))` }
+  return (
     <div className="grid" style={columns}>
-      {timelineProps.map(props => <TimeLineCell {...props} key={position} />)}
+      {units.map((unit) => {
+        return <div className="text-sm border-l-2 border-black" key={unit}>{unit}</div>
+      })}
     </div>
   )
 }
@@ -163,6 +174,7 @@ export default function BottomLineDemo({ unitOfTime = 'year', startDate = "2024"
         <Timeline {...timelines[3]} />
         <Timeline {...timelines[2]} />
         <Timeline {...timelines[1]} />
+        <XAxis units={xAxis} />
         <Timeline {...timelines[0]} />
       </main>
     </div >
