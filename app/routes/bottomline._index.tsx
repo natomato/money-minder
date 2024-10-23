@@ -94,7 +94,11 @@ function Timeline({ label, position, xAxisBegin: first, xAxisEnd: last, total, c
   )
 }
 
-function XAxis({ units }) {
+type xAxisProps = {
+  units: Array<number | string>
+}
+
+function XAxis({ units }: xAxisProps) {
   const columns = { gridTemplateColumns: `repeat(${units.length}, minmax(0, 1fr))` }
   return (
     <div className="grid" style={columns}>
