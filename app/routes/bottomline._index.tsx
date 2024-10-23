@@ -89,7 +89,7 @@ function Timeline({ label, position, xAxisBegin: first, xAxisEnd: last, total, c
 
   return (
     <div className="grid" style={columns} onClick={() => console.log(`clicked ${label}`)}>
-      {timelineProps.map((props, index) => <TimeLineCell {...props} key={`${label}-${index}`} />)}
+      {timelineProps.map((props, index) => <TimeLineCell {...props} key={`${label.substr(0, 4)}-${index}`} />)}
     </div>
   )
 }
@@ -106,6 +106,12 @@ function XAxis({ units }: xAxisProps) {
         return <div className="text-sm border-l-2 border-black" key={unit}>{unit}</div>
       })}
     </div>
+  )
+}
+
+function TimelineEditor({ label }: Timeline) {
+  return (
+    <div><p>{label}</p></div>
   )
 }
 
@@ -179,6 +185,9 @@ export default function BottomLineDemo({ unitOfTime = 'year', startDate = "2024"
         <Timeline {...timelines[1]} />
         <XAxis units={xAxis} />
         <Timeline {...timelines[0]} />
+        <section id='timeline-editor' className="m-4">
+          <TimelineEditor {...timelines[0]} />
+        </section>
       </main>
     </div >
   );
