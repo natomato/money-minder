@@ -57,7 +57,6 @@ function newTimeline(size: number): TimelineCell[] {
       color: '',
       first: false,
       last: false,
-      clickHandler: () => { },
     }
   });
 }
