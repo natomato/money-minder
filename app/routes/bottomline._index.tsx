@@ -1,15 +1,15 @@
 type IncomeExpenseStream = {
   name: string,
-  amount: number,
+  amountPerYr: number,
   startDate: Date,
   endDate: Date,
 }
 
 const mockStreams = [
-  { name: "Pension", amount: 60000, startDate: new Date('01/01/2024'), endDate: new Date('01/01/2034') },
-  { name: "Living Expenses", amount: -65000, startDate: new Date('01/01/2024'), endDate: new Date('01/01/2034') },
-  { name: "Land Sale", amount: 80000, startDate: new Date('01/01/2025'), endDate: new Date('01/01/2025') },
-  { name: "Land Loan Repayment", amount: 36000, startDate: new Date('01/01/2025'), endDate: new Date('01/01/2032') },
+  { name: "Pension", amountPerYr: 60000, startDate: new Date('01/01/2024'), endDate: new Date('01/01/2034') },
+  { name: "Living Expenses", amountPerYr: -65000, startDate: new Date('01/01/2024'), endDate: new Date('01/01/2034') },
+  { name: "Land Sale", amountPerYr: 80000, startDate: new Date('01/01/2025'), endDate: new Date('01/01/2025') },
+  { name: "Land Loan Repayment", amountPerYr: 36000, startDate: new Date('01/01/2025'), endDate: new Date('01/01/2032') },
 ]
 
 const demoData = {
@@ -88,7 +88,6 @@ function Timeline({ label, position, xAxisBegin: first, xAxisEnd: last, total, c
     .map((timeline, index) => addBar(timeline, index, first, last, color))
     .map((timeline, index) => addLabel(timeline, index, String(position + 1)))
 
-  console.log('tlp', timelineProps);
   return (
     <div className="grid" style={columns}>
       {timelineProps.map(props => <TimeLineCell {...props} key={position} />)}
@@ -99,8 +98,8 @@ function Timeline({ label, position, xAxisBegin: first, xAxisEnd: last, total, c
 function getYearsBetween(startDate: string | Date, stopDate: string | Date): number[] {
   const start: Date = new Date(startDate);
   const stop: Date = new Date(stopDate);
-  const startYear: number = start.getFullYear();
-  const stopYear: number = stop.getFullYear();
+  const startYear: number = start.getUTCFullYear();
+  const stopYear: number = stop.getUTCFullYear();
   const years: number[] = [];
 
   for (let year: number = startYear; year <= stopYear; year++) {
@@ -135,14 +134,15 @@ export default function BottomLineDemo({ unitOfTime = 'year', startDate = "2024"
 
   //convert stream to timeline
   const timelines = demoData.streams.map(({ name, startDate, endDate }: IncomeExpenseStream, index): Timeline => {
-    let last, first;
+    let last = -1;
+    let first = -1;
     if (unitOfTime = 'year') {
-      first = xAxis.indexOf(startDate.getFullYear());
-      last = xAxis.indexOf(endDate.getFullYear());
+      first = xAxis.indexOf(startDate.getUTCFullYear());
+      last = xAxis.indexOf(endDate.getUTCFullYear());
     }
 
-    if (!first || !last) {
-      throw Error(`Unable to find the start or end date for the ${name} stream along the x-axis: ${xAxis}`)
+    if (first == -1 || last == -1) {
+      throw Error(`Unable to find the start, ${first}, or end, ${last}, date for the ${name} stream along the x-axis: ${xAxis[0]}...${xAxis[-1]}`)
     }
 
     let choice = index % colorsForTimelines.length; //repeat after last color used
@@ -164,36 +164,7 @@ export default function BottomLineDemo({ unitOfTime = 'year', startDate = "2024"
         <Timeline {...timelines[2]} />
         <Timeline {...timelines[1]} />
         <Timeline {...timelines[0]} />
-
-        <p>...</p>
-        <div className="grid grid-cols-8 border-solid border-2">
-          <div></div>
-          <div></div>
-          <div className="bg-gradient-to-l from-sky-500 to-10%" onClick={() => { console.log('+c') }}></div>
-          <div className="flex justify-center bg-sky-500 border-solid border-2 border-sky-700">C</div>
-          <div className="hover:bg-gradient-to-r hover:from-sky-500 hover:to-10% border-dashed border-2 border-gray-100" onClick={() => { console.log('c+') }}></div>
-          <div></div>
-          <div></div>
-          <div></div>
-        </div>
-        <p>...</p>
-        <div className="">
-          {/* <div className="max-w-4xl mx-auto my-12"> */}
-          <div className="relative w-[400px] h-[200px] border-l-2 border-b-2 border-black">
-            {/* Y-axis labels */}
-            <div className="absolute -left-10 top-0 bottom-0 flex flex-col-reverse justify-between">
-              <span className="text-xs">-4</span>
-              <span className="text-xs">-5</span>
-            </div>
-
-            {/* X-axis labels */}
-            <div className="absolute left-0 right-0 -bottom-8 flex justify-between">
-              <span className="text-xs transform -rotate-45 origin-top-left">2024</span>
-              <span className="text-xs transform -rotate-45 origin-top-left">2040</span>
-            </div>
-          </div>
-        </div>
-      </main >
+      </main>
     </div >
   );
 }
