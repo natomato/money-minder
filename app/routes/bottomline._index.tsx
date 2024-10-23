@@ -24,13 +24,11 @@ type TimelineCell = {
   label?: string,
   first?: boolean,
   last?: boolean,
-  clickHandler?: (event: EventTarget) => void,
 }
 
-function TimeLineCell({ color, label, clickHandler, first = false, last = false }: TimelineCell) {
+function TimeLineCell({ color, label, first = false, last = false }: TimelineCell) {
   color = color || "";
   label = label || "";
-  clickHandler = clickHandler || undefined;
   let classNames = "h-8";
   if (color) { classNames = classNames + ` ${color}` }
   if (label) { classNames = classNames + ` grid place-items-center` }
@@ -38,7 +36,7 @@ function TimeLineCell({ color, label, clickHandler, first = false, last = false 
   if (last) { classNames = classNames + ` rounded-r-lg` }
 
   return (
-    <div className={classNames} onClick={clickHandler}>{label}</div>
+    <div className={classNames}>{label}</div>
   );
 }
 
@@ -82,34 +80,13 @@ function addLabel(timeline: TimelineCell, index: number, label: string) {
   }
 }
 
-//TODO: rethink how to add click handlers
-//NOTE: Only allowed 1 clickHandler function per cell
-// Better to enable move on click, then let another part of screen show a webform when click on the stream where the lenght can be changed.
-function addShrinkClickHandler(timeline: TimelineCell, index: number, first: number, last: number, clickHandler: () => {}) {
-  return {
-    ...timeline,
-    clickHandler: index == first || index == last ? clickHandler : timeline.clickHandler,
-  }
-}
-
-//NOTE: Only allowed 1 clickHandler function per cell
-function addExpandClickHandler(timeline: TimelineCell, index: number, first: number, last: number, clickHandler: () => {}) {
-  return {
-    ...timeline,
-    clickHandler: index == first - 1 || index == last + 1 ? clickHandler : timeline.clickHandler,
-  }
-}
 
 function Timeline({ label, position, xAxisBegin: first, xAxisEnd: last, total, color }: Timeline) {
   const columns = { gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }
-  const expand = ({ target }: Event) => { console.log('expand' + target) };
-  const shrink = ({ target }: Event) => { console.log('shrink' + target) };
 
   let timelineProps = newTimeline(total)
     .map((timeline, index) => addBar(timeline, index, first, last, color))
     .map((timeline, index) => addLabel(timeline, index, String(position + 1)))
-    .map((timeline, index) => addShrinkClickHandler(timeline, index, first, last, shrink))
-    .map((timeline, index) => addExpandClickHandler(timeline, index, first, last, expand))
 
   console.log('tlp', timelineProps);
   return (
