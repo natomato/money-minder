@@ -16,6 +16,7 @@ model User {
 
   password Password?
   notes    Note[]
+  charts   Chart[]
 }
 
 model Password {
@@ -35,4 +36,55 @@ model Note {
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId String
+}
+
+model Chart {
+  id          String @id @default(cuid())
+  name        String
+  startDate   DateTime
+  stopDate    DateTime
+  savings     Int
+  streams     Stream[]
+  moments     Moment[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  creator     User   @relation(fields: [creatorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  creatorId   String
+}
+
+model Stream {
+  id            String @id @default(cuid())
+  name          String 
+  amountPerYr   Int
+  streamBoundary String
+  startDate     DateTime?
+  stopDate      DateTime?
+  startMoment   Moment? @relation("StartMoment", fields: [startMomentId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  startMomentId String?
+  stopMoment    Moment? @relation("StopMoment", fields: [stopMomentId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  stopMomentId  String?
+  setDuration   Int?
+
+  chart       Chart @relation(fields: [chartId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  chartId     String
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Moment {
+  id          String @id @default(cuid())
+  name        String 
+  date        DateTime
+
+  chart       Chart @relation(fields: [chartId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  chartId     String
+
+  streamStarts Stream[] @relation("StartMoment")
+  streamStops  Stream[] @relation("StopMoment")
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

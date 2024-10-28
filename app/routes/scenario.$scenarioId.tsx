@@ -1,3 +1,5 @@
+import { Form, Link, NavLink, Outlet, useLoaderData } from "@remix-run/react";
+
 type IncomeExpenseStream = {
   name: string,
   amountPerYr: number,
@@ -9,7 +11,7 @@ const mockStreams = [
   { name: "Pension", amountPerYr: 60000, startDate: new Date('01/01/2024'), endDate: new Date('01/01/2034') },
   { name: "Living Expenses", amountPerYr: -65000, startDate: new Date('01/01/2024'), endDate: new Date('01/01/2034') },
   { name: "Land Sale", amountPerYr: 80000, startDate: new Date('01/01/2025'), endDate: new Date('01/01/2025') },
-  { name: "Land Loan Repayment", amountPerYr: 36000, startDate: new Date('01/01/2025'), endDate: new Date('01/01/2032') },
+  { name: "Loan Repayment", amountPerYr: 36000, startDate: new Date('01/01/2025'), endDate: new Date('01/01/2032') },
 ]
 
 const demoData = {
@@ -129,14 +131,14 @@ function getYearsBetween(startDate: string | Date, stopDate: string | Date): num
   return years;
 }
 
-type BLDemoProps = {
+type SummaryProps = {
   unitOfTime: string,
   startDate: Date | string,
   endDate: Date | string,
 }
 
 //TODO: make demoData a prop
-export default function BottomLineDemo({ unitOfTime = 'year', startDate = "2024", endDate = "2040" }: BLDemoProps) {
+function FinPlanSummary({ unitOfTime = 'year', startDate = "2024", endDate = "2040" }: SummaryProps) {
   //calculate x-axis
   let xAxis: number[] = [];
   if (unitOfTime = 'year') {
@@ -193,3 +195,31 @@ export default function BottomLineDemo({ unitOfTime = 'year', startDate = "2024"
   );
 }
 
+export default function SummaryPage() {
+
+  return (
+    <div className="flex h-full min-h-screen flex-col">
+      <header className="flex items-center justify-between bg-slate-800 p-4 text-white">
+        <h1 className="text-3xl font-bold">
+          <Link to=".">Home</Link>
+        </h1>
+        <p className="text-3xl font-bold">Financial Plan Summary</p>
+        <Form action="/logout" method="post">
+          <button
+            type="submit"
+            className="rounded bg-slate-600 px-4 py-2 text-blue-100 hover:bg-blue-500 active:bg-blue-600"
+          >
+            Logout
+          </button>
+        </Form>
+      </header>
+
+      <Outlet />
+      <main className="flex h-full bg-white">
+        <div className="flex-1 p-6">
+          <FinPlanSummary />
+        </div>
+      </main>
+    </div>
+  );
+}
