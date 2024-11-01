@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { STREAM_BOUNDARY } from "~/models/stream.server";
+import { STREAM_BOUNDARY } from "~/models/chart.server";
 
 const prisma = new PrismaClient();
 
@@ -51,7 +51,8 @@ async function seed() {
 
   const chartNoPension = await prisma.chart.create({
     data: {
-      name: "Early pension loss",
+      id: 'demo123',
+      name: "Living without the Pension",
       startDate: "2024-01-01T00:00:00-00:00",
       stopDate: "2040-01-01T00:00:00-00:00",
       savings: 200000,
@@ -110,7 +111,7 @@ async function seed() {
   });
 
   // This is tricky. The current liv expenses for 2 people goes until the first person dies, could be Alice or Bob
-  // You can get around this limitation by creating an overlapping stream that starts when one person dies and essentially acts like a single person rebate
+  // I could create a new type of derived moment, RIP_1st_person, whose value updates based on who dies first.
   const currentlivExp = await prisma.stream.create({
     data: {
       name: "Living Expenses",

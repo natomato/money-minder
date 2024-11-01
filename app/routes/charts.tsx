@@ -11,7 +11,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return json({ chartListItems });
 };
 
-export default function ScenariosPage() {
+export default function ChartsPage() {
   const data = useLoaderData<typeof loader>();
   return (
     <div className="flex h-full flex-col">
@@ -42,7 +42,7 @@ export default function ScenariosPage() {
                       className={({ isActive }) =>
                         `block border-b p-4 text-xl ${isActive ? "bg-white" : ""}`
                       }
-                      to={`/charts/${chart.id}`}
+                      to={chart.id}
                     >
                       {chart.name}
                     </NavLink>
@@ -51,29 +51,8 @@ export default function ScenariosPage() {
               </ol>
             )}
           </div>
+          <Outlet />
           <hr />
-          <div>
-            <div>Scenario: Lose Pension Early</div>
-            <div>Balance Sheet Img</div>
-            <div>
-              <p>Streams</p>
-              <p>Income: Pension</p>
-              <p>Income: SSA Alice</p>
-              <p>Expense: Basic Living</p>
-            </div>
-            <div>
-              <p>Moments</p>
-              <p>RIP: Alice 2046</p>
-              <p>RIP: Bob 2026</p>
-              <p>...</p>
-            </div>
-            <div>Created: 01/01/2024 by Alice</div>
-          </div>
-          <div className="">
-            <Link to="" className="text-blue-500 underline">
-              New Scenario
-            </Link>
-          </div>
         </div>
       </section>
     </div>
