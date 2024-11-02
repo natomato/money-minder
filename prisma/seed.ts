@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+
 import { STREAM_BOUNDARY } from "~/models/chart.server";
 
 const prisma = new PrismaClient();
@@ -22,16 +23,18 @@ async function generateUser(name: string) {
 
 async function deleteUsers() {
   // cleanup the existing database
-  await prisma.user.deleteMany({ where: { email: { contains: "test.run" } } }).catch(() => {
-    // no worries if it doesn't exist yet
-  });
+  await prisma.user
+    .deleteMany({ where: { email: { contains: "test.run" } } })
+    .catch(() => {
+      // no worries if it doesn't exist yet
+    });
 }
 
 async function seed() {
   await deleteUsers();
   const rachel = await generateUser("rachel");
   const alice = await generateUser("alice");
-  const bob = await generateUser("bob");
+  await generateUser("bob");
 
   await prisma.note.create({
     data: {
@@ -51,13 +54,13 @@ async function seed() {
 
   const chartNoPension = await prisma.chart.create({
     data: {
-      id: 'demo123',
+      id: "demo123",
       name: "Living without the Pension",
       startDate: "2024-01-01T00:00:00-00:00",
       stopDate: "2040-01-01T00:00:00-00:00",
       savings: 200000,
       creatorId: alice.id,
-    }
+    },
   });
 
   const momentRIPBob = await prisma.moment.create({
@@ -65,7 +68,7 @@ async function seed() {
       name: "RIP Bob",
       date: "2025-01-01T00:00:00-00:00",
       chartId: chartNoPension.id,
-    }
+    },
   });
 
   const landSale = await prisma.moment.create({
@@ -73,11 +76,11 @@ async function seed() {
       name: "Cleveland Sold",
       date: "2026-01-01T00:00:00-00:00",
       chartId: chartNoPension.id,
-    }
+    },
   });
 
-
-  const landRevenue = await prisma.stream.create({
+  // landRevenue
+  await prisma.stream.create({
     data: {
       name: "Cleveland Sale",
       amountPerYr: 80000,
@@ -85,10 +88,11 @@ async function seed() {
       startMomentId: landSale.id,
       stopMomentId: landSale.id,
       chartId: chartNoPension.id,
-    }
+    },
   });
 
-  const loanPayments = await prisma.stream.create({
+  // loanPayments
+  await prisma.stream.create({
     data: {
       name: "Loan Payments",
       amountPerYr: 36000,
@@ -96,10 +100,11 @@ async function seed() {
       startMomentId: landSale.id,
       setDuration: 7,
       chartId: chartNoPension.id,
-    }
+    },
   });
 
-  const pension = await prisma.stream.create({
+  //pension
+  await prisma.stream.create({
     data: {
       name: "Pension",
       amountPerYr: 80000,
@@ -107,12 +112,13 @@ async function seed() {
       startDate: "2024-01-01T00:00:00-00:00",
       stopMomentId: momentRIPBob.id,
       chartId: chartNoPension.id,
-    }
+    },
   });
 
-  // This is tricky. The current liv expenses for 2 people goes until the first person dies, could be Alice or Bob
+  // currentlivExp
+  // This one is tricky. The current liv expenses for 2 people goes until the first person dies, could be Alice or Bob
   // I could create a new type of derived moment, RIP_1st_person, whose value updates based on who dies first.
-  const currentlivExp = await prisma.stream.create({
+  await prisma.stream.create({
     data: {
       name: "Living Expenses",
       amountPerYr: -60000,
@@ -120,10 +126,11 @@ async function seed() {
       startDate: "2024-01-01T00:00:00-00:00",
       stopDate: "2040-01-01T00:00:00-00:00",
       chartId: chartNoPension.id,
-    }
+    },
   });
 
-  const ltcExp = await prisma.stream.create({
+  // ltcExpense
+  await prisma.stream.create({
     data: {
       name: "Bob's Long Term Care Expenses",
       amountPerYr: -120000,
@@ -131,9 +138,8 @@ async function seed() {
       setDuration: 2,
       stopMomentId: momentRIPBob.id,
       chartId: chartNoPension.id,
-    }
+    },
   });
-
 
   console.log(`Database has been seeded. 🌱`);
 }

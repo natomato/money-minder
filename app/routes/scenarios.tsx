@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { Form, Link, NavLink, Outlet, useLoaderData } from "@remix-run/react";
+import { Form, Link, NavLink, useLoaderData } from "@remix-run/react";
 
 import { getChartsByUser } from "~/models/chart.server";
 import { requireUserId } from "~/session.server";
@@ -79,4 +79,3 @@ export default function ScenariosPage() {
     </div>
   );
 }
-
