@@ -57,7 +57,9 @@ model Chart {
 model Stream {
   id            String @id @default(cuid())
   name          String 
+  color         String
   amountPerYr   Int
+  isIncome      Boolean
   streamBoundary String
   startDate     DateTime?
   stopDate      DateTime?

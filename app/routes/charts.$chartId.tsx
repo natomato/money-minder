@@ -1,5 +1,6 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
+import React, { PropsWithChildren } from "react";
 import {
   useLoaderData,
   isRouteErrorResponse,
@@ -7,115 +8,48 @@ import {
 } from "@remix-run/react";
 import invariant from "tiny-invariant";
 
-import type { Timeline } from "~/models/chart.server";
-import { getChartAndTimelines } from "~/models/chart.server";
+import type { StreamWithData } from "~/utils/chart";
+import { getChart } from "~/models/chart.server";
 
 export const loader = async ({ params }: LoaderFunctionArgs) => {
   invariant(params.chartId, "chartId not found");
-  const { chart, timelines, xAxis } = await getChartAndTimelines(
-    params.chartId,
-  );
+  const { chart } = await getChart(params.chartId);
   if (!chart) {
     throw new Response("Not Found", { status: 404 });
   }
-  return json({ chart, timelines, xAxis });
+  return json({ chart });
 };
 
-interface TimelineCell {
-  color?: string;
-  label?: string;
-  first?: boolean;
-  last?: boolean;
-}
+const CHART_COLORS = {
+  SKY: "bg-sky-500",
+  RED: "bg-red-500",
+  PURPLE: "bg-purple-500",
+  ORANGE: "bg-orange-500",
+  GREEN: "bg-green-500",
+  YELLOW: "bg-yellow-500",
+} as const;
 
-function TimeLineCell({
-  color,
-  label,
-  first = false,
-  last = false,
-}: TimelineCell) {
-  color = color || "";
-  label = label || "";
-  let classNames = "h-8";
-  if (color) {
-    classNames = classNames + ` ${color}`;
-  }
-  if (label) {
-    classNames = classNames + ` grid place-items-center`;
-  }
-  if (first) {
-    classNames = classNames + ` rounded-l-lg`;
-  }
-  if (last) {
-    classNames = classNames + ` rounded-r-lg`;
-  }
-  return <div className={classNames}>{label}</div>;
-}
-
-//Create an array of default props for a TimelineCell of the given size
-function newTimeline(size: number): TimelineCell[] {
-  return Array.from({ length: size }, () => {
-    return {
-      label: "",
-      color: "",
-      first: false,
-      last: false,
-    };
-  });
-}
-
-//Modify the array of default Timeline props to indicate if a cell is part of the incomeExpenseStream or empty space
-function addBar(
-  timeline: TimelineCell,
-  index: number,
-  first: number,
-  last: number,
-  color: string,
-) {
-  return {
-    ...timeline,
-    color: index >= first && index <= last ? color : "",
-    first: index == first,
-    last: index == last,
+function Stream(stream: StreamWithData) {
+  const columns = {
+    gridTemplateColumns: `repeat(${stream.data.length}, minmax(0, 1fr))`,
   };
-}
-
-//Modify the array of default Timeline props to add a label
-function addLabel(timeline: TimelineCell, index: number, label: string) {
-  return {
-    ...timeline,
-    label: index == 0 ? label : "",
-  };
-}
-
-function Timeline({
-  label,
-  position,
-  xAxisBegin: first,
-  xAxisEnd: last,
-  total,
-  color,
-}: Timeline) {
-  const columns = { gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` };
-
-  const timelineProps = newTimeline(total)
-    .map((timeline, index) => addBar(timeline, index, first, last, color))
-    .map((timeline, index) => addLabel(timeline, index, String(position + 1)));
-
+  const emptyCell = "grid place-items-center text-sm min-h-8";
+  const filledCell = emptyCell + " " + CHART_COLORS[stream.color];
   return (
     <div className="grid" style={columns}>
-      {timelineProps.map((props, index) => (
-        <TimeLineCell {...props} key={`${label.substring(0, 4)}-${index}`} />
-      ))}
+      {stream.data.map((value, index) => {
+        return (
+          <div
+            className={value ? filledCell : emptyCell}
+            key={`${stream.name.substring(0, 4)}-${index}`}
+          ></div>
+        );
+      })}
     </div>
   );
 }
 
-interface xAxisProps {
-  units: number[] | string[];
-}
-
-function XAxis({ units }: xAxisProps) {
+function XAxis({ units }: { units: number[] }) {
   const columns = {
     gridTemplateColumns: `repeat(${units.length}, minmax(0, 1fr))`,
   };
@@ -132,41 +66,72 @@ function XAxis({ units }: xAxisProps) {
   );
 }
 
-function TimelineEditor({ label }: Timeline) {
+type ChartColor = keyof typeof CHART_COLORS;
+function Bar({
+  start,
+  stop,
+  color,
+  label,
+}: {
+  start: number;
+  stop: number;
+  color: ChartColor;
+  label: string;
+}) {
+  const position = { gridColumnStart: start, gridColumnEnd: stop };
+  const barColor = color ? CHART_COLORS[color] : "";
+  const classNames = `grid place-items-center text-sm min-h-8 ${barColor}`;
   return (
-    <div>
-      <p>{label}</p>
+    <div className={classNames} style={position}>
+      {label}
     </div>
   );
 }
 
-export default function ScenarioDetailsPage() {
-  const { xAxis, timelines } = useLoaderData<typeof loader>();
+interface GridProps {
+  cols: number;
+}
 
-  const incomeStreams = timelines.filter((line) => line.isIncome);
-  const expenseStreams = timelines.filter((line) => !line.isIncome);
+const Grid: React.FC<PropsWithChildren<GridProps>> = ({ cols, children }) => {
+  const columns = {
+    gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+  };
 
   return (
-    <div className="flex flex-col">
-      <main className="flex bg-white">
-        <div className="flex-1 p-6">
-          <div className="flex flex-col">
-            <div className="flex h-80 w-full flex-col font-sans text-2xl">
-              {incomeStreams.map((timeline) => (
-                <Timeline {...timeline} key={timeline.label} />
-              ))}
-              <XAxis units={xAxis} />
-              {expenseStreams.map((timeline) => (
-                <Timeline {...timeline} key={timeline.label} />
-              ))}
-              <section id="timeline-editor" className="m-4">
-                <TimelineEditor {...expenseStreams[0]} />
-              </section>
-            </div>
-          </div>
-        </div>
-      </main>
+    <div className="grid" style={columns}>
+      {children}
     </div>
+  );
+};
+
+export default function ScenarioDetailsPage() {
+  const { chart } = useLoaderData<typeof loader>();
+
+  const incomeStreams = chart.streamsWithData.filter(
+    (stream) => stream.isIncome,
+  );
+  const expenseStreams = chart.streamsWithData.filter(
+    (stream) => !stream.isIncome,
+  );
+
+  return (
+    <main className="flex flex-row">
+      <div className="h-80 w-full font-sans text-2xl">
+        <Grid cols={17}>
+          <Bar start={5} stop={15} color="PURPLE" label="Test" />
+        </Grid>
+        {incomeStreams.map((stream) => (
+          <Stream {...stream} key={stream.name} />
+        ))}
+        <XAxis units={chart.xAxis} />
+        {expenseStreams.map((stream) => (
+          <Stream {...stream} key={stream.name} />
+        ))}
+        <section id="timeline-editor" className="m-4">
+          <p>Streams Editor</p>
+        </section>
+      </div>
+    </main>
   );
 }
 

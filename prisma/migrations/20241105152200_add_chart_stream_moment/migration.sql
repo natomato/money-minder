@@ -15,6 +15,7 @@ CREATE TABLE "Chart" (
 CREATE TABLE "Stream" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
+    "color" TEXT NOT NULL,
     "amountPerYr" INTEGER NOT NULL,
     "streamBoundary" TEXT NOT NULL,
     "startDate" DATETIME,

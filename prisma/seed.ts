@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
-import { STREAM_BOUNDARY } from "~/models/chart.server";
+import { STREAM_BOUNDARY, STREAM_COLORS } from "~/utils/chart";
 
 const prisma = new PrismaClient();
 
@@ -84,6 +84,8 @@ async function seed() {
     data: {
       name: "Cleveland Sale",
       amountPerYr: 80000,
+      isIncome: true,
+      color: STREAM_COLORS.SKY,
       streamBoundary: STREAM_BOUNDARY.Moment_to_Moment,
       startMomentId: landSale.id,
       stopMomentId: landSale.id,
@@ -96,6 +98,8 @@ async function seed() {
     data: {
       name: "Loan Payments",
       amountPerYr: 36000,
+      isIncome: true,
+      color: STREAM_COLORS.RED,
       streamBoundary: STREAM_BOUNDARY.Moment_to_Duration,
       startMomentId: landSale.id,
       setDuration: 7,
@@ -108,6 +112,8 @@ async function seed() {
     data: {
       name: "Pension",
       amountPerYr: 80000,
+      isIncome: true,
+      color: STREAM_COLORS.PURPLE,
       streamBoundary: STREAM_BOUNDARY.Date_to_Moment,
       startDate: "2024-01-01T00:00:00-00:00",
       stopMomentId: momentRIPBob.id,
@@ -122,6 +128,8 @@ async function seed() {
     data: {
       name: "Living Expenses",
       amountPerYr: -60000,
+      isIncome: false,
+      color: STREAM_COLORS.ORANGE,
       streamBoundary: STREAM_BOUNDARY.Date_to_Date,
       startDate: "2024-01-01T00:00:00-00:00",
       stopDate: "2040-01-01T00:00:00-00:00",
@@ -134,12 +142,19 @@ async function seed() {
     data: {
       name: "Bob's Long Term Care Expenses",
       amountPerYr: -120000,
+      isIncome: false,
+      color: STREAM_COLORS.GREEN,
       streamBoundary: STREAM_BOUNDARY.Duration_to_Moment,
       setDuration: 2,
       stopMomentId: momentRIPBob.id,
       chartId: chartNoPension.id,
     },
   });
+
+  //Missing Examples
+  // Date_to_Duration
+  // Duration_to_Date
+  // Moment_to_Date
 
   console.log(`Database has been seeded. 🌱`);
 }
