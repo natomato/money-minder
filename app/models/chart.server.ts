@@ -1,7 +1,7 @@
 import type { User, Chart } from "@prisma/client";
-import type { ChartWithElements } from "~/utils/chart";
 
 import { prisma } from "~/db.server";
+import type { ChartWithElements } from "~/utils/chart";
 import { getChartData } from "~/utils/chart";
 
 async function getChartRaw(id: Chart["id"]): Promise<ChartWithElements | null> {

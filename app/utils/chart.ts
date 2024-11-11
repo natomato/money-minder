@@ -2,7 +2,9 @@
 // ie: StreamsWithData
 //   [
 //     id: <streamId>
-//     data: [ 0, 0, 5, 5, 5, 5, 0, 0]    <--- Generated
+//     data: [ 0, 0, 5, 5, 5, 5, 0, 0]    <--- Generated for UI
+//     startIndex: 3                      <--- Generated for UI
+//     stopIndex: 7                       <--- Generated for UI
 //     isIncome: (above or below x-axis)
 //     color: ...
 //     amountPerYr: (when showValues toggled)
@@ -21,7 +23,6 @@
 //   ]
 
 import type { Stream, Moment } from "@prisma/client";
-
 import { Prisma } from "@prisma/client";
 
 const chartWithElements = Prisma.validator<Prisma.ChartDefaultArgs>()({
@@ -31,7 +32,12 @@ export type ChartWithElements = Prisma.ChartGetPayload<
   typeof chartWithElements
 >;
 
-export type StreamWithData = Stream & { data: number[] };
+export type StreamWithData = Stream & {
+  color: StreamColor;
+  data: number[];
+  startIndex: number;
+  stopIndex: number;
+};
 
 export const STREAM_COLORS = {
   SKY: "SKY",
@@ -40,7 +46,9 @@ export const STREAM_COLORS = {
   GREEN: "GREEN",
   ORANGE: "ORANGE",
   YELLOW: "YELLOW",
+  DEFAULT: "DEFAULT",
 } as const;
+export type StreamColor = keyof typeof STREAM_COLORS;
 export const STREAM_BOUNDARY = {
   Date_to_Date: "Date_to_Date",
   Date_to_Moment: "Date_to_Moment",
@@ -58,22 +66,37 @@ interface ChartDates {
   error: string;
 }
 
-type ChartData = {
+interface ChartData {
   xAxis: number[];
   streamsWithData: StreamWithData[];
   totals: number[];
-};
+}
 export function getChartData(chart: ChartWithElements): ChartData {
   const { streams, moments } = chart;
   const xAxis = getYears(chart.startDate, chart.stopDate);
-
   const streamsWithData = streams.map((stream): StreamWithData => {
     const [firstYear, lastYear] = getFirstAndLastYear(stream, moments);
-    const streamWithData = { ...stream, data: [] } as StreamWithData;
+    const streamWithData = {
+      ...stream,
+      color: standardColor(stream.color, stream.name),
+      data: Array(xAxis.length).fill(0),
+      startIndex: 0,
+      stopIndex: 0,
+    } as StreamWithData;
+    if (firstYear > lastYear) {
+      //invalid range, the data array is all 0's
+      return streamWithData;
+    }
     // calculate the streams value for each year on the x-axis
-    streamWithData.data = xAxis.map((year) => {
+    streamWithData.data = xAxis.map((year, index) => {
+      if (year === firstYear) {
+        streamWithData.startIndex = index;
+      }
+      if (year === lastYear) {
+        streamWithData.stopIndex = index;
+      }
       if (year < firstYear || year > lastYear) {
-        return 0; //a stream where the start year is after the stop year will be all 0's
+        return 0;
       } else {
         return stream.amountPerYr;
       }
@@ -85,6 +108,16 @@ export function getChartData(chart: ChartWithElements): ChartData {
   return { xAxis, streamsWithData, totals };
 }
 
+function standardColor(color: string, name: string): StreamColor {
+  const valid = Object.keys(STREAM_COLORS).includes(color);
+  if (valid) {
+    return color as StreamColor;
+  }
+  console.warn(
+    `Stream ${name}, had an invalid color ${color} that was changed to "DEFAULT"`,
+  );
+  return "DEFAULT" as StreamColor;
+}
 export function getYears(startDate: Date, stopDate: Date): ChartData["xAxis"] {
   const { error, startYear, stopYear } = getChartLimits(startDate, stopDate);
   if (error) {
@@ -260,7 +293,7 @@ function transpose(data: number[][]): number[][] {
   const numRows = data.length;
   const numCols = data[0].length;
 
-  let result: number[][] = Array(numCols)
+  const result: number[][] = Array(numCols)
     .fill([])
     .map(() => []);
 

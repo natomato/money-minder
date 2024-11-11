@@ -1,15 +1,15 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import React, { PropsWithChildren } from "react";
 import {
   useLoaderData,
   isRouteErrorResponse,
   useRouteError,
 } from "@remix-run/react";
+import React, { PropsWithChildren } from "react";
 import invariant from "tiny-invariant";
 
-import type { StreamWithData } from "~/utils/chart";
 import { getChart } from "~/models/chart.server";
+import type { StreamWithData, StreamColor } from "~/utils/chart";
 
 export const loader = async ({ params }: LoaderFunctionArgs) => {
   invariant(params.chartId, "chartId not found");
@@ -20,21 +20,23 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
   return json({ chart });
 };
 
-const CHART_COLORS = {
+const CHART_COLORS: Record<StreamColor, string> = {
   SKY: "bg-sky-500",
   RED: "bg-red-500",
   PURPLE: "bg-purple-500",
   ORANGE: "bg-orange-500",
   GREEN: "bg-green-500",
   YELLOW: "bg-yellow-500",
+  DEFAULT: "bg-slate-500",
 } as const;
 
-function Stream(stream: StreamWithData) {
+//TODO: refactor this to be useful when showing all cell values
+export function Stream(stream: StreamWithData) {
   const columns = {
     gridTemplateColumns: `repeat(${stream.data.length}, minmax(0, 1fr))`,
   };
   const emptyCell = "grid place-items-center text-sm min-h-8";
-  const filledCell = emptyCell + " " + CHART_COLORS[stream.color];
+  const filledCell = `${emptyCell} ${CHART_COLORS[stream.color]}`;
   return (
     <div className="grid" style={columns}>
       {stream.data.map((value, index) => {
@@ -66,35 +68,63 @@ function XAxis({ units }: { units: number[] }) {
   );
 }
 
+function shorten(word: string, len = 6) {
+  if (word.length <= len) return word;
+  return word.substring(word.length - len);
+}
+
 type ChartColor = keyof typeof CHART_COLORS;
-function Bar({
-  start,
-  stop,
-  color,
-  label,
-}: {
-  start: number;
-  stop: number;
+interface BarProps {
+  row: number;
+  gridStart: number;
+  gridStop: number;
   color: ChartColor;
-  label: string;
-}) {
-  const position = { gridColumnStart: start, gridColumnEnd: stop };
+  name: string;
+  id: string;
+}
+function Bar({ gridStart, gridStop, row, color, name, id }: BarProps) {
+  const position = {
+    gridColumnStart: gridStart || "none",
+    gridColumnEnd: gridStop || "none",
+    gridRow: row,
+  };
+  const label = {
+    gridColumnStart: -4,
+    gridColumnEnd: -1,
+    gridRow: row,
+  };
   const barColor = color ? CHART_COLORS[color] : "";
-  const classNames = `grid place-items-center text-sm min-h-8 ${barColor}`;
+  const classNames = `place-items-center text-sm min-h-8 flex ${barColor}`;
+  const hideName = false; //TODO: enable a toggle button
   return (
-    <div className={classNames} style={position}>
-      {label}
-    </div>
+    <>
+      <div
+        className="z-10 flex min-h-8 place-items-center text-sm"
+        style={label}
+        id={shorten(name)}
+      >
+        <p className="overflow-hidden whitespace-nowrap">
+          {hideName ? "" : name}
+        </p>
+      </div>
+      <div className={classNames} style={position} id={shorten(id)}></div>
+    </>
   );
 }
 
 interface GridProps {
   cols: number;
+  rows: number;
 }
 
-const Grid: React.FC<PropsWithChildren<GridProps>> = ({ cols, children }) => {
+const Grid: React.FC<PropsWithChildren<GridProps>> = ({
+  rows,
+  cols,
+  children,
+}) => {
   const columns = {
     gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+    gridTemplateRows: `repeat(${rows}, 2rem)`,
   };
 
   return (
@@ -104,29 +134,49 @@ const Grid: React.FC<PropsWithChildren<GridProps>> = ({ cols, children }) => {
   );
 };
 
+type NoRowBarProps = Omit<BarProps, "row">;
 export default function ScenarioDetailsPage() {
   const { chart } = useLoaderData<typeof loader>();
 
-  const incomeStreams = chart.streamsWithData.filter(
-    (stream) => stream.isIncome,
-  );
-  const expenseStreams = chart.streamsWithData.filter(
-    (stream) => !stream.isIncome,
+  const gridCols = chart.xAxis.length;
+  const bars = chart.streamsWithData.map((stream) => {
+    const { startIndex, stopIndex, name, color, isIncome, id } = stream;
+
+    const gridStart = stopIndex ? startIndex + 1 : 0;
+    const gridStop = stopIndex ? stopIndex + 2 : 0;
+
+    return { isIncome, props: { gridStart, gridStop, name, color, id } };
+  });
+  interface AccumulatorType {
+    incomes: NoRowBarProps[];
+    expenses: NoRowBarProps[];
+  }
+  const { incomes, expenses } = bars.reduce<AccumulatorType>(
+    (acc, bar) => {
+      if (bar.isIncome) {
+        acc.incomes.push(bar.props);
+      } else {
+        acc.expenses.push(bar.props);
+      }
+      return acc;
+    },
+    { incomes: [], expenses: [] },
   );
 
   return (
     <main className="flex flex-row">
       <div className="h-80 w-full font-sans text-2xl">
-        <Grid cols={17}>
-          <Bar start={5} stop={15} color="PURPLE" label="Test" />
+        <Grid rows={incomes.length} cols={gridCols}>
+          {incomes.map((income, index) => (
+            <Bar {...income} row={index + 1} key={shorten(income.id)} />
+          ))}
         </Grid>
-        {incomeStreams.map((stream) => (
-          <Stream {...stream} key={stream.name} />
-        ))}
         <XAxis units={chart.xAxis} />
-        {expenseStreams.map((stream) => (
-          <Stream {...stream} key={stream.name} />
-        ))}
+        <Grid rows={expenses.length} cols={gridCols}>
+          {expenses.map((expense, index) => (
+            <Bar {...expense} row={index + 1} key={shorten(expense.id)} />
+          ))}
+        </Grid>
         <section id="timeline-editor" className="m-4">
           <p>Streams Editor</p>
         </section>
