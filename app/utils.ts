@@ -74,3 +74,44 @@ export function useUser(): User {
 export function validateEmail(email: unknown): email is string {
   return typeof email === "string" && email.length > 3 && email.includes("@");
 }
+
+function shortNumbers(num: number): string {
+  // Validate input
+  if (num < -90000000 || num > 90000000) {
+    throw new Error("Number must be between -90 million and 90 million");
+  }
+
+  // Handle zero separately to avoid -0
+  if (num === 0) return "0";
+
+  // Store sign and work with absolute value
+  const isNegative = num < 0;
+  const absNum = Math.abs(num);
+
+  let result: string;
+
+  // For millions
+  if (absNum >= 1000000) {
+    const millions = (absNum / 1000000).toFixed();
+    result = `${parseFloat(millions)}m`;
+  }
+  // For thousands
+  else if (absNum >= 1000) {
+    const thousands = (absNum / 1000).toFixed();
+    result = `${parseFloat(thousands)}k`;
+  }
+  // For numbers less than 1000
+  else {
+    result = absNum.toString();
+  }
+
+  return isNegative ? `-${result}` : result;
+}
+
+export function shorten(word: string | number, len = 6): string {
+  if (typeof word === "number") {
+    return shortNumbers(word);
+  }
+  if (word.length <= len) return word;
+  return word.substring(word.length - len);
+}

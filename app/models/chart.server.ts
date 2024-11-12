@@ -1,4 +1,4 @@
-import type { User, Chart } from "@prisma/client";
+import type { User, Chart, Stream } from "@prisma/client";
 
 import { prisma } from "~/db.server";
 import type { ChartWithElements } from "~/utils/chart";
@@ -23,10 +23,35 @@ export async function getChart(id: Chart["id"]) {
   return { chart };
 }
 
+export async function getStream(
+  id: Stream["id"] | undefined,
+): Promise<Stream | null> {
+  return await prisma.stream.findUnique({
+    where: { id },
+    include: {
+      startMoment: true,
+      stopMoment: true,
+    },
+  });
+}
+
 export function getChartsByUser(creatorId: User["id"]) {
   return prisma.chart.findMany({
     where: { creatorId },
     select: { id: true, name: true, updatedAt: true },
     orderBy: { updatedAt: "desc" },
+  });
+}
+
+export function updateStream({
+  id,
+  amountPerYr,
+}: {
+  id: string;
+  amountPerYr: number;
+}) {
+  return prisma.stream.update({
+    where: { id },
+    data: { amountPerYr },
   });
 }

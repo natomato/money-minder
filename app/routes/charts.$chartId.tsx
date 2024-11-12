@@ -1,6 +1,9 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import {
+  Link,
+  NavLink,
+  Outlet,
   useLoaderData,
   isRouteErrorResponse,
   useRouteError,
@@ -9,7 +12,8 @@ import React, { PropsWithChildren } from "react";
 import invariant from "tiny-invariant";
 
 import { getChart } from "~/models/chart.server";
-import type { StreamWithData, StreamColor } from "~/utils/chart";
+import { CHART_COLORS } from "~/utils/chart";
+import { shorten } from "~/utils";
 
 export const loader = async ({ params }: LoaderFunctionArgs) => {
   invariant(params.chartId, "chartId not found");
@@ -19,37 +23,6 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
   }
   return json({ chart });
 };
-
-const CHART_COLORS: Record<StreamColor, string> = {
-  SKY: "bg-sky-500",
-  RED: "bg-red-500",
-  PURPLE: "bg-purple-500",
-  ORANGE: "bg-orange-500",
-  GREEN: "bg-green-500",
-  YELLOW: "bg-yellow-500",
-  DEFAULT: "bg-slate-500",
-} as const;
-
-//TODO: refactor this to be useful when showing all cell values
-export function Stream(stream: StreamWithData) {
-  const columns = {
-    gridTemplateColumns: `repeat(${stream.data.length}, minmax(0, 1fr))`,
-  };
-  const emptyCell = "grid place-items-center text-sm min-h-8";
-  const filledCell = `${emptyCell} ${CHART_COLORS[stream.color]}`;
-  return (
-    <div className="grid" style={columns}>
-      {stream.data.map((value, index) => {
-        return (
-          <div
-            className={value ? filledCell : emptyCell}
-            key={`${stream.name.substring(0, 4)}-${index}`}
-          ></div>
-        );
-      })}
-    </div>
-  );
-}
 
 function XAxis({ units }: { units: number[] }) {
   const columns = {
@@ -66,11 +39,6 @@ function XAxis({ units }: { units: number[] }) {
       })}
     </div>
   );
-}
-
-function shorten(word: string, len = 6) {
-  if (word.length <= len) return word;
-  return word.substring(word.length - len);
 }
 
 type ChartColor = keyof typeof CHART_COLORS;
@@ -94,8 +62,7 @@ function Bar({ gridStart, gridStop, row, color, name, id }: BarProps) {
     gridRow: row,
   };
   const barColor = color ? CHART_COLORS[color] : "";
-  const classNames = `place-items-center text-sm min-h-8 flex ${barColor}`;
-  const hideName = false; //TODO: enable a toggle button
+  const classNames = `place-items-center text-sm min-h-8 flex rounded ${barColor}`;
   return (
     <>
       <div
@@ -103,9 +70,12 @@ function Bar({ gridStart, gridStop, row, color, name, id }: BarProps) {
         style={label}
         id={shorten(name)}
       >
-        <p className="overflow-hidden whitespace-nowrap">
-          {hideName ? "" : name}
-        </p>
+        <Link
+          to={`./streams/${id}`}
+          className="overflow-hidden whitespace-nowrap"
+        >
+          {name}
+        </Link>
       </div>
       <div className={classNames} style={position} id={shorten(id)}></div>
     </>
@@ -135,7 +105,7 @@ const Grid: React.FC<PropsWithChildren<GridProps>> = ({
 };
 
 type NoRowBarProps = Omit<BarProps, "row">;
-export default function ScenarioDetailsPage() {
+export default function ChartDetailsPage() {
   const { chart } = useLoaderData<typeof loader>();
 
   const gridCols = chart.xAxis.length;
@@ -164,8 +134,11 @@ export default function ScenarioDetailsPage() {
   );
 
   return (
-    <main className="flex flex-row">
-      <div className="h-80 w-full font-sans text-2xl">
+    <main className="m-4 flex flex-col">
+      <h1 className="mb-4 text-2xl">
+        <NavLink to={`./streams`}>{chart.name}</NavLink>
+      </h1>
+      <section className="h-80 w-full font-sans text-2xl">
         <Grid rows={incomes.length} cols={gridCols}>
           {incomes.map((income, index) => (
             <Bar {...income} row={index + 1} key={shorten(income.id)} />
@@ -177,10 +150,8 @@ export default function ScenarioDetailsPage() {
             <Bar {...expense} row={index + 1} key={shorten(expense.id)} />
           ))}
         </Grid>
-        <section id="timeline-editor" className="m-4">
-          <p>Streams Editor</p>
-        </section>
-      </div>
+      </section>
+      <Outlet />
     </main>
   );
 }

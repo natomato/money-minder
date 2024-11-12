@@ -49,6 +49,17 @@ export const STREAM_COLORS = {
   DEFAULT: "DEFAULT",
 } as const;
 export type StreamColor = keyof typeof STREAM_COLORS;
+
+export const CHART_COLORS: Record<StreamColor, string> = {
+  SKY: "bg-sky-500",
+  RED: "bg-red-500",
+  PURPLE: "bg-purple-500",
+  ORANGE: "bg-orange-500",
+  GREEN: "bg-green-500",
+  YELLOW: "bg-yellow-500",
+  DEFAULT: "bg-slate-500",
+} as const;
+
 export const STREAM_BOUNDARY = {
   Date_to_Date: "Date_to_Date",
   Date_to_Moment: "Date_to_Moment",
@@ -70,9 +81,11 @@ interface ChartData {
   xAxis: number[];
   streamsWithData: StreamWithData[];
   totals: number[];
+  name: string;
+  id: string;
 }
 export function getChartData(chart: ChartWithElements): ChartData {
-  const { streams, moments } = chart;
+  const { streams, moments, name, id } = chart;
   const xAxis = getYears(chart.startDate, chart.stopDate);
   const streamsWithData = streams.map((stream): StreamWithData => {
     const [firstYear, lastYear] = getFirstAndLastYear(stream, moments);
@@ -105,7 +118,7 @@ export function getChartData(chart: ChartWithElements): ChartData {
   });
 
   const totals = getTotals(streamsWithData);
-  return { xAxis, streamsWithData, totals };
+  return { xAxis, streamsWithData, totals, name, id };
 }
 
 function standardColor(color: string, name: string): StreamColor {
