@@ -24,21 +24,101 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
   return json({ chart });
 };
 
-function XAxis({ units }: { units: number[] }) {
+const MQ = {
+  TINY_MAX: 380,
+  PHONE_MIN: 381,
+  PHONE_MAX: 500,
+  PHABLET_MIN: 501,
+  PHABLET_MAX: 800,
+  TABLET_MIN: 801,
+  TABLET_MAX: 1030,
+  MONITOR_MIN: 1031,
+  MONITOR_LARGE: 2400,
+};
+// Adjust the number of tick marks displayed based on viewport width
+function XAxis({ units, vw }: { units: number[]; vw: number }) {
+  let tickMarks = 8;
+  //use compact years, like `25, on small screens to fit more tickMarks
+  const isCompact = vw <= MQ.PHABLET_MAX;
+  let values = units.map((unit) => {
+    if (isCompact) {
+      return `'${unit.toString().slice(-2)}`;
+    }
+    return unit.toString();
+  });
+
+  if (vw <= MQ.TINY_MAX) {
+    tickMarks = 8;
+  } else if (vw <= MQ.PHONE_MAX) {
+    tickMarks = 12;
+  } else if (vw <= MQ.PHABLET_MAX) {
+    tickMarks = 16;
+  } else if (vw <= MQ.TABLET_MAX) {
+    tickMarks = 16;
+  } else if (vw <= MQ.MONITOR_LARGE) {
+    tickMarks = 24;
+  } else {
+    tickMarks = 30;
+  }
+
+  values = pickEveryFew(values, tickMarks); //from ['1', '2', '3', '4'] => ['1', '', '3', '']
+
   const columns = {
     gridTemplateColumns: `repeat(${units.length}, minmax(0, 1fr))`,
   };
   return (
     <div className="grid" style={columns}>
-      {units.map((unit) => {
-        return (
-          <div className="border-l-2 border-black text-sm" key={unit}>
-            {unit}
-          </div>
-        );
+      {values.map((value, index) => {
+        if (value) {
+          return (
+            <div className="border-l-2 border-black text-sm" key={index}>
+              {value}
+            </div>
+          );
+        } else {
+          return <div key={index}></div>;
+        }
       })}
     </div>
   );
+}
+
+// Find the best fit for xaxis
+// if given [1..10] and you have 10 slots = [1,2,3,4,5,6,7,8,9]
+// if given [1..10] and you have 9 slots = same as 5
+// if given [1..10] and you have 6 slots = same as 5
+// if given [1..10] and you have 5 slots = ['1','', '3', '', '5'...'9']
+// if given [1..10] and you have 4 slots = ['1', '', '', '4', ... '10']
+function pickEveryFew(list: string[], spaceAvailable: number): string[] {
+  const full = list.length;
+  const half = Math.floor(full / 2);
+  const third = Math.floor(full / 3);
+  const fourth = Math.floor(full / 4);
+  const fifth = Math.floor(full / 5);
+  let addEvery;
+  if (spaceAvailable >= full) {
+    addEvery = 1;
+  } else if (spaceAvailable >= half) {
+    addEvery = 2;
+  } else if (spaceAvailable >= third) {
+    addEvery = 3;
+  } else if (spaceAvailable >= fourth) {
+    addEvery = 4;
+  } else if (spaceAvailable >= fifth) {
+    addEvery = 5;
+  } else {
+    addEvery = 5;
+    console.log(
+      "Reached the limit of the x-axis compactness. Cannot show less than 1 every 5",
+    );
+  }
+
+  return list.map((v, idx) => {
+    if (idx % addEvery === 0) {
+      return v.toString();
+    }
+    return "";
+  });
 }
 
 type ChartColor = keyof typeof CHART_COLORS;
@@ -109,6 +189,9 @@ export default function ChartDetailsPage() {
   const { chart } = useLoaderData<typeof loader>();
 
   const gridCols = chart.xAxis.length;
+  //TODO: get the vw in a clientLoader or useEffect, because browser only
+  let vw = MQ.MONITOR_MIN;
+
   const bars = chart.streamsWithData.map((stream) => {
     const { startIndex, stopIndex, name, color, isIncome, id } = stream;
 
@@ -144,7 +227,7 @@ export default function ChartDetailsPage() {
             <Bar {...income} row={index + 1} key={shorten(income.id)} />
           ))}
         </Grid>
-        <XAxis units={chart.xAxis} />
+        <XAxis units={chart.xAxis} vw={vw} />
         <Grid rows={expenses.length} cols={gridCols}>
           {expenses.map((expense, index) => (
             <Bar {...expense} row={index + 1} key={shorten(expense.id)} />
